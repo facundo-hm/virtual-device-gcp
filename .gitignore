@@ -108,3 +108,5 @@ venv.bak/
 
 # saved models
 models/
+
+ec_private.pem

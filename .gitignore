@@ -110,3 +110,4 @@ venv.bak/
 models/
 
 ec_private.pem
+roots.pem

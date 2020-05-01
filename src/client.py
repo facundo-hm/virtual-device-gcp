@@ -1,5 +1,6 @@
 import ssl
 import paho.mqtt.client as mqtt
+import time
 
 def error_str(rc):
     return '{}: {}'.format(rc, mqtt.error_string(rc))
@@ -36,6 +37,7 @@ def get_client(
     client = mqtt.Client(client_id=client_id)
 
     client.username_pw_set(username='unused', password=password)
+    client.tls_set(ca_certs=ca_certs, tls_version=ssl.PROTOCOL_TLSv1_2)
 
     # Assign callbacks
     client.on_connect = on_connect
@@ -53,5 +55,7 @@ def get_client(
     # Command topic
     mqtt_command_topic = '/devices/{}/commands/#'.format(device_id)
     client.subscribe(mqtt_command_topic, qos=0)
+
+    client.loop_forever()
 
     return client

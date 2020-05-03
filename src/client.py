@@ -1,12 +1,12 @@
 import ssl
-import paho.mqtt.client as mqtt
+from paho.mqtt.client import Client, connack_string, error_string
 import time
 
 def error_str(rc):
-    return '{}: {}'.format(rc, mqtt.error_string(rc))
+    return '{}: {}'.format(rc, error_string(rc))
 
 def on_connect(client, userdata, flags, rc):
-    print('on_connect', mqtt.connack_string(rc))
+    print('on_connect', connack_string(rc))
 
 def on_disconnect(client, userdata, rc):
     print('on_disconnect', error_str(rc))
@@ -17,7 +17,8 @@ def on_publish(client, userdata, mid):
 def on_message(client, userdata, message):
     payload = str(message.payload.decode('utf-8'))
     print('Received message \'{}\' on topic \'{}\' with Qos {}'.format(
-            payload, message.topic, str(message.qos)))
+        payload, message.topic, str(message.qos)
+    ))
 
 def get_client(
     project_id: str,
@@ -30,11 +31,12 @@ def get_client(
     ca_certs: str):
 
     client_id = 'projects/{}/locations/{}/registries/{}/devices/{}'.format(
-        project_id, cloud_region, registry_id, device_id)
+        project_id, cloud_region, registry_id, device_id
+    )
 
     print('Client ID \'{}\''.format(client_id))
 
-    client = mqtt.Client(client_id=client_id)
+    client = Client(client_id=client_id)
 
     client.username_pw_set(username='unused', password=password)
     client.tls_set(ca_certs=ca_certs, tls_version=ssl.PROTOCOL_TLSv1_2)
@@ -48,14 +50,14 @@ def get_client(
     # Connect to MQTT bridge
     client.connect(mqtt_bridge_hostname, mqtt_bridge_port)
 
-    # Configuration topic
+    client.loop_start()
+
+    return client
+
+def subscribe_to_config (client: Client, device_id: str):
     mqtt_config_topic = '/devices/{}/config'.format(device_id)
     client.subscribe(mqtt_config_topic, qos=1)
 
-    # Command topic
+def subscribe_to_command (client: Client, device_id: str):
     mqtt_command_topic = '/devices/{}/commands/#'.format(device_id)
     client.subscribe(mqtt_command_topic, qos=0)
-
-    client.loop_forever()
-
-    return client

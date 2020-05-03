@@ -1,11 +1,17 @@
-from click import command, option, echo, group, Choice
+from click import (
+    command, option, echo, group, Choice, pass_context, Context
+)
 from dotenv import load_dotenv
 import os
 
 from jwt_utils import create_jwt
-from client import get_client, subscribe_to_config, subscribe_to_command
+from client import (
+    get_client, subscribe_to_config, subscribe_to_command, disconnect
+)
 
 load_dotenv()
+
+CLIENT = 'client'
 
 @group()
 @option(
@@ -46,7 +52,9 @@ load_dotenv()
     help='CA root from https://pki.google.com/roots.pem')
 @option('--config', is_flag=True)
 @option('--command', is_flag=True)
+@pass_context
 def mqtt_client(
+    ctx: Context,
     project_id: str,
     cloud_region: str,
     registry_id: str,
@@ -68,14 +76,22 @@ def mqtt_client(
     if command:
         subscribe_to_command(client, device_id)
 
+    # Ensure that ctx.obj exists and is a dict
+    ctx.ensure_object(dict)
+    ctx.obj[CLIENT] = client
+
 
 @mqtt_client.command()
 @option('--num_messages', default=1, help='Number of messages.')
 @option('--device_messages', prompt='Your device message', help='The message to send.')
-def send_message(num_messages: int, device_messages: str):
+@pass_context
+def send_message(ctx: Context, num_messages: int, device_messages: str):
     """Simple program that sends messages."""
     for _ in range(num_messages):
         echo('Sending message: %s' % device_messages)
+
+    disconnect(ctx.obj[CLIENT])
+
 
 if __name__ == '__main__':
     mqtt_client()

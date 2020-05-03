@@ -54,10 +54,14 @@ def get_client(
 
     return client
 
-def subscribe_to_config (client: Client, device_id: str):
+def subscribe_to_config(client: Client, device_id: str):
     mqtt_config_topic = '/devices/{}/config'.format(device_id)
     client.subscribe(mqtt_config_topic, qos=1)
 
-def subscribe_to_command (client: Client, device_id: str):
+def subscribe_to_command(client: Client, device_id: str):
     mqtt_command_topic = '/devices/{}/commands/#'.format(device_id)
     client.subscribe(mqtt_command_topic, qos=0)
+
+def disconnect(client: Client):
+    client.disconnect()
+    client.loop_stop()

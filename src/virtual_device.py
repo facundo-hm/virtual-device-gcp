@@ -3,15 +3,20 @@ from click import (
 )
 from dotenv import load_dotenv
 import os
+import time
 
 from jwt_utils import create_jwt
 from client import (
-    get_client, subscribe_to_config, subscribe_to_command, disconnect
+    get_client, subscribe_to_config, subscribe_to_command,
+    disconnect, publishPayload
 )
 
 load_dotenv()
 
 CLIENT = 'client'
+DEVICE_ID = 'device_id'
+EVENTS_TOPIC = 'events'
+STATE_TOPIC = 'state'
 
 @group()
 @option(
@@ -53,19 +58,10 @@ CLIENT = 'client'
 @option('--config', is_flag=True)
 @option('--command', is_flag=True)
 @pass_context
-def mqtt_client(
-    ctx: Context,
-    project_id: str,
-    cloud_region: str,
-    registry_id: str,
-    device_id: str,
-    private_key_file: str,
-    algorithm: str,
-    mqtt_bridge_hostname: str,
-    mqtt_bridge_port: int,
-    ca_certs: str,
-    config: bool,
-    command: bool):
+def mqtt_client(ctx: Context, project_id: str, cloud_region: str, registry_id: str,
+                device_id: str, private_key_file: str, algorithm: str, 
+                mqtt_bridge_hostname: str, mqtt_bridge_port: int, ca_certs: str,
+                config: bool, command: bool):
     password = create_jwt(project_id, private_key_file, algorithm)
     client = get_client(project_id, cloud_region, registry_id, device_id, password,
                         mqtt_bridge_hostname, mqtt_bridge_port, ca_certs)
@@ -76,19 +72,26 @@ def mqtt_client(
     if command:
         subscribe_to_command(client, device_id)
 
+    time.sleep(2)
+
     # Ensure that ctx.obj exists and is a dict
     ctx.ensure_object(dict)
     ctx.obj[CLIENT] = client
+    ctx.obj[DEVICE_ID] = device_id
 
 
 @mqtt_client.command()
-@option('--num_messages', default=1, help='Number of messages.')
-@option('--device_messages', prompt='Your device message', help='The message to send.')
+@option('--message',
+        prompt='Your device message', help='The message to send.')
+@option('--topic',
+        prompt='MQTT topic',
+        type=Choice([EVENTS_TOPIC, STATE_TOPIC],
+        case_sensitive=True))
 @pass_context
-def send_message(ctx: Context, num_messages: int, device_messages: str):
-    """Simple program that sends messages."""
-    for _ in range(num_messages):
-        echo('Sending message: %s' % device_messages)
+def send_message(ctx: Context, message: str, topic: str):
+    publishPayload(ctx.obj[CLIENT], ctx.obj[DEVICE_ID], topic, message)
+
+    time.sleep(2)
 
     disconnect(ctx.obj[CLIENT])
 

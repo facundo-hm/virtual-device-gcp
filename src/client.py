@@ -1,6 +1,5 @@
 import ssl
 from paho.mqtt.client import Client, connack_string, error_string
-import time
 
 def error_str(rc):
     return '{}: {}'.format(rc, error_string(rc))
@@ -29,7 +28,6 @@ def get_client(
     mqtt_bridge_hostname: str,
     mqtt_bridge_port: str,
     ca_certs: str):
-
     client_id = 'projects/{}/locations/{}/registries/{}/devices/{}'.format(
         project_id, cloud_region, registry_id, device_id
     )
@@ -65,3 +63,7 @@ def subscribe_to_command(client: Client, device_id: str):
 def disconnect(client: Client):
     client.disconnect()
     client.loop_stop()
+
+def publishPayload(client: Client, device_id: str, topic:str, payload: str):
+    mqtt_topic = '/devices/{}/{}'.format(device_id, topic)
+    client.publish(mqtt_topic, payload, qos=1)

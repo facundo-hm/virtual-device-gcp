@@ -1,3 +1,4 @@
+from typing import Tuple
 from click import (
     command, option, echo, group, Choice, pass_context, Context
 )
@@ -7,8 +8,8 @@ import time
 
 from jwt_utils import create_jwt
 from client import (
-    get_client, subscribe_to_config, subscribe_to_command,
-    disconnect, publishPayload
+    get_client, subscribe_to_topic, disconnect,
+    publishPayload, CONFIG_TOPIC, COMMANDS_TOPIC
 )
 
 load_dotenv()
@@ -55,22 +56,13 @@ STATE_TOPIC = 'state'
     '--ca_certs',
     default=os.getenv('CA_CERTS'),
     help='CA root from https://pki.google.com/roots.pem')
-@option('--config', is_flag=True)
-@option('--command', is_flag=True)
 @pass_context
 def mqtt_client(ctx: Context, project_id: str, cloud_region: str, registry_id: str,
                 device_id: str, private_key_file: str, algorithm: str, 
-                mqtt_bridge_hostname: str, mqtt_bridge_port: int, ca_certs: str,
-                config: bool, command: bool):
+                mqtt_bridge_hostname: str, mqtt_bridge_port: int, ca_certs: str):
     password = create_jwt(project_id, private_key_file, algorithm)
     client = get_client(project_id, cloud_region, registry_id, device_id, password,
                         mqtt_bridge_hostname, mqtt_bridge_port, ca_certs)
-
-    if config:
-        subscribe_to_config(client, device_id)
-
-    if command:
-        subscribe_to_command(client, device_id)
 
     time.sleep(2)
 
@@ -81,6 +73,26 @@ def mqtt_client(ctx: Context, project_id: str, cloud_region: str, registry_id: s
 
 
 @mqtt_client.command()
+@option(
+    '--topic',
+    '--t',
+    type=Choice([CONFIG_TOPIC, COMMANDS_TOPIC], case_sensitive=True),
+    required=True,
+    multiple=True)
+@pass_context
+def subscribe(ctx: Context, topic: Tuple[str]):
+    client = ctx.obj[CLIENT]
+    device_id = ctx.obj[DEVICE_ID]
+
+    for t in topic:
+        subscribe_to_topic(client, device_id, t)
+
+    time.sleep(2)
+
+    disconnect(client)
+
+
+@mqtt_client.command()
 @option('--message',
         prompt='Your device message', help='The message to send.')
 @option('--topic',
@@ -88,12 +100,15 @@ def mqtt_client(ctx: Context, project_id: str, cloud_region: str, registry_id: s
         type=Choice([EVENTS_TOPIC, STATE_TOPIC],
         case_sensitive=True))
 @pass_context
-def send_message(ctx: Context, message: str, topic: str):
-    publishPayload(ctx.obj[CLIENT], ctx.obj[DEVICE_ID], topic, message)
+def publish(ctx: Context, message: str, topic: str):
+    client = ctx.obj[CLIENT]
+    deviceId = ctx.obj[DEVICE_ID]
+
+    publishPayload(client, deviceId, topic, message)
 
     time.sleep(2)
 
-    disconnect(ctx.obj[CLIENT])
+    disconnect(client)
 
 
 if __name__ == '__main__':

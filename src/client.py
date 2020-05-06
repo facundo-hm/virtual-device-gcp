@@ -1,6 +1,9 @@
 import ssl
 from paho.mqtt.client import Client, connack_string, error_string
 
+CONFIG_TOPIC = 'config'
+COMMANDS_TOPIC = 'commands'
+
 def error_str(rc):
     return '{}: {}'.format(rc, error_string(rc))
 
@@ -59,6 +62,13 @@ def subscribe_to_config(client: Client, device_id: str):
 def subscribe_to_command(client: Client, device_id: str):
     mqtt_command_topic = '/devices/{}/commands/#'.format(device_id)
     client.subscribe(mqtt_command_topic, qos=0)
+
+def subscribe_to_topic(client: Client, device_id: str, topic: str):
+    if topic == CONFIG_TOPIC:
+        subscribe_to_config(client, device_id)
+
+    if topic == COMMANDS_TOPIC:
+        subscribe_to_command(client, device_id)
 
 def disconnect(client: Client):
     client.disconnect()

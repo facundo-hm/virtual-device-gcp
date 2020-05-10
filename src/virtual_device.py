@@ -120,10 +120,14 @@ def subscribe(ctx: Context, topic: Tuple[str]):
         prompt='MQTT topic',
         type=Choice([EVENTS_TOPIC, STATE_TOPIC],
         case_sensitive=True))
+@option('--subtopic', help='Events subtopic.')
 @pass_context
-def publish(ctx: Context, message: str, topic: str):
+def publish(ctx: Context, message: str, topic: str, subtopic: str):
     client = ctx.obj[CLIENT]
     deviceId = ctx.obj[DEVICE_ID]
+
+    if topic == EVENTS_TOPIC and subtopic:
+        topic = '{}/{}'.format(topic, subtopic)
 
     publishPayload(client, deviceId, topic, message)
 

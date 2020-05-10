@@ -5,6 +5,7 @@ from click import (
 from dotenv import load_dotenv
 import os
 import time
+from threading import Thread
 
 from jwt_utils import create_jwt
 from client import (
@@ -18,6 +19,21 @@ CLIENT = 'client'
 DEVICE_ID = 'device_id'
 EVENTS_TOPIC = 'events'
 STATE_TOPIC = 'state'
+EXIT_VALUE = 'exit'
+
+class NonBlockingInput(Thread):
+    def __init__(self, input_callback = None, name='non-blocking-input'):
+        self.input_callback = input_callback
+        self._running = True
+        super().__init__(name=name)
+        self.start()
+
+    def stop(self):
+        self._running = False
+
+    def run(self):
+        while self._running:
+            self.input_callback(input())
 
 @group()
 @option(
@@ -84,12 +100,17 @@ def subscribe(ctx: Context, topic: Tuple[str]):
     client = ctx.obj[CLIENT]
     device_id = ctx.obj[DEVICE_ID]
 
+    def readInput(value):
+        if (value == EXIT_VALUE):
+            disconnect(client)
+            non_blocking_input.stop()
+
+    non_blocking_input = NonBlockingInput(readInput)
+
     for t in topic:
         subscribe_to_topic(client, device_id, t)
 
-    time.sleep(2)
-
-    disconnect(client)
+    echo('Type exit <Enter> to disconnect')
 
 
 @mqtt_client.command()

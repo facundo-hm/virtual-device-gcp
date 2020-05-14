@@ -1,5 +1,6 @@
 import ssl
 from paho.mqtt.client import Client, connack_string, error_string
+from click import secho, echo
 
 CONFIG_TOPIC = 'config'
 COMMANDS_TOPIC = 'commands'
@@ -8,17 +9,22 @@ def error_str(rc):
     return '{}: {}'.format(rc, error_string(rc))
 
 def on_connect(client, userdata, flags, rc):
-    print('on_connect', connack_string(rc))
+    secho('on_connect: ', fg='bright_green', nl=False)
+    echo(connack_string(rc))
 
 def on_disconnect(client, userdata, rc):
-    print('on_disconnect', error_str(rc))
+    secho('on_disconnect: ', fg='bright_green', nl=False)
+    echo(error_str(rc))
 
-def on_publish(client, userdata, mid):
-    print('on_publish')
+def on_publish(client, userdata, msg):
+    secho('on_publish: ', fg='bright_green', nl=False)
+    echo('The message has been sent.')
 
 def on_message(client, userdata, message):
     payload = str(message.payload.decode('utf-8'))
-    print('Received message \'{}\' on topic \'{}\' with Qos {}'.format(
+
+    secho('Received message: ', fg='bright_green', nl=False)
+    echo('\'{}\' on topic \'{}\' with Qos {}'.format(
         payload, message.topic, str(message.qos)
     ))
 
@@ -35,7 +41,8 @@ def get_client(
         project_id, cloud_region, registry_id, device_id
     )
 
-    print('Client ID \'{}\''.format(client_id))
+    secho('Client ID: ', fg='bright_green', nl=False)
+    echo('\'{}\''.format(client_id))
 
     client = Client(client_id=client_id)
 

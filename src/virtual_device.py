@@ -1,6 +1,6 @@
 from typing import Tuple
 from click import (
-    command, option, echo, group, Choice, pass_context, Context
+    command, option, secho, group, Choice, pass_context, Context
 )
 from dotenv import load_dotenv
 import os
@@ -110,7 +110,7 @@ def subscribe(ctx: Context, topic: Tuple[str]):
     for t in topic:
         subscribe_to_topic(client, device_id, t)
 
-    echo('Type exit <Enter> to disconnect')
+    secho('Type exit <Enter> to disconnect', fg='bright_magenta', bold=True)
 
 
 @mqtt_client.command()
